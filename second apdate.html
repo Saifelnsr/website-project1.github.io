@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e9f5e9; /* Light green background */
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #2b7a0b; /* Dark green header */
+            color: #ffffff;
+            padding: 20px 10px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        main {
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        section {
+            flex: 1;
+            margin: 10px;
+            min-width: 300px;
+            background-color: #ffffff; /* White background for sections */
+            border: 1px solid #c5e1c5; /* Light green border */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h2 {
+            color: #2b7a0b; /* Dark green for headings */
+            border-bottom: 2px solid #c5e1c5; /* Light green underline */
+            padding-bottom: 5px;
+            padding-top: 10px;
+            text-align: center;
+        }
+
+        canvas {
+            width: 100%;
+            height: 300px;
+            display: block;
+            margin: auto;
+        }
+
+        footer {
+            background-color: #2b7a0b; /* Dark green footer */
+            color: #ffffff;
+            text-align: center;
+            padding: 10px 0;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Green Monitoring Project</h1>
+    </header>
+    <main>
+        <!-- VOC Graph -->
+        <section id="voc-section">
+            <h2>VOC Levels</h2>
+            <canvas id="voc-chart"></canvas>
+        </section>
+        <!-- CO2 Graph -->
+        <section id="co2-section">
+            <h2>CO2 Levels</h2>
+            <canvas id="co2-chart"></canvas>
+        </section>
+        <!-- Temperature Graph -->
+        <section id="temperature-section">
+            <h2>Temperature</h2>
+            <canvas id="temperature-chart"></canvas>
+        </section>
+    </main>
+    <footer>
+        <p>Powered by ThingSpeak | Green Monitoring Theme</p>
+    </footer>
+    <script>
+        const apiKey = "AU6532ZNQFC1LXHT"; // Your Read API Key
+        const channelId = "2709384"; // Your Channel ID
+
+        async function fetchThingSpeakData() {
+            try {
+                console.log("Fetching data from ThingSpeak...");
+                const response = await fetch(`https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${apiKey}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP Error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log("Data fetched successfully:", data);
+
+                if (data && data.feeds) {
+                    createGraphs(data.feeds);
+                } else {
+                    console.error("No data found in response.");
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        }
+
+        function createGraphs(feeds) {
+            // Labels for all graphs
+            const labels = feeds.map(feed => new Date(feed.created_at).toLocaleString());
+
+            // Data for each field
+            const vocData = feeds.map(feed => parseFloat(feed.field1)); // Assume VOC data is in Field 1
+            const co2Data = feeds.map(feed => parseFloat(feed.field2)); // Assume CO2 data is in Field 2
+            const temperatureData = feeds.map(feed => parseFloat(feed.field3)); // Assume Temperature data is in Field 3
+
+            // Create VOC Graph
+            new Chart(document.getElementById("voc-chart").getContext("2d"), {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "VOC Levels (ppm)",
+                        data: vocData,
+                        borderColor: "#4caf50", // Green
+                        backgroundColor: "rgba(76, 175, 80, 0.2)", // Transparent green
+                        borderWidth: 1,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: "Time" }},
+                        y: { title: { display: true, text: "VOC Concentration (ppm)" }}
+                    }
+                }
+            });
+
+            // Create CO2 Graph
+            new Chart(document.getElementById("co2-chart").getContext("2d"), {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "CO2 Levels (ppm)",
+                        data: co2Data,
+                        borderColor: "#8bc34a", // Light green
+                        backgroundColor: "rgba(139, 195, 74, 0.2)", // Transparent light green
+                        borderWidth: 1,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: "Time" }},
+                        y: { title: { display: true, text: "CO2 Concentration (ppm)" }}
+                    }
+                }
+            });
+
+            // Create Temperature Graph
+            new Chart(document.getElementById("temperature-chart").getContext("2d"), {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Temperature (°C)",
+                        data: temperatureData,
+                        borderColor: "#388e3c", // Darker green
+                        backgroundColor: "rgba(56, 142, 60, 0.2)", // Transparent darker green
+                        borderWidth: 1,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: "Time" }},
+                        y: { title: { display: true, text: "Temperature (°C)" }}
+                    }
+                }
+            });
+        }
+
+        // Fetch data and render graphs every 15 seconds
+        fetchThingSpeakData();
+        setInterval(fetchThingSpeakData, 15000); // Automatically refresh every 15 seconds
+    </script>
+</body>
+</html>
